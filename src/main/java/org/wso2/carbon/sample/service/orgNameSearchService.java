@@ -1,18 +1,34 @@
 package org.wso2.carbon.sample.service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import javax.annotation.Resource;
 import javax.jws.WebResult;
 import javax.jws.WebService;
 import javax.jws.WebMethod;
 import javax.jws.WebParam;
+import javax.xml.bind.DatatypeConverter;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.ws.WebServiceContext;
+import javax.xml.ws.handler.MessageContext;
+
+
 
 
 @WebService(serviceName = "orgNameSearchService")
 public class orgNameSearchService{
 
-	ArrayList<OrgData> orgDataStore = new ArrayList<OrgData>();
+	private ArrayList<OrgData> orgDataStore = new ArrayList<OrgData>();
+	private static final String JWT_HEADER_NAME = "x-jwt-assertion";
+
+	
+	@Resource
+	private WebServiceContext wsCtxt;
 	
 	orgNameSearchService() {
 		orgDataStore.add(new OrgData("org0001", "AAA"));
@@ -40,6 +56,11 @@ public class orgNameSearchService{
 	public Response orgNameSearch(@WebParam(name = "partialOrgName") String partialOrgName, 
 						@WebParam(name = "pageNumber") int pageNumber,
 						@WebParam(name = "pageSize") int pageSize) {
+		printJWTAttributes();
+		
+		System.out.println("Requested page number : " +  pageNumber);
+		System.out.println("Requested page size : " +  pageSize);
+		
 		Response response = new Response();
 		
 		ArrayList<OrgData> matchingData = new ArrayList<OrgData>(); 
@@ -55,17 +76,17 @@ public class orgNameSearchService{
 			
 			int dataOffset = getDataOffset(pageNumber, pageSize);
 			
-			System.out.println("TotalMatches : " + matchingData.size());
-			System.out.println("dataOffset : " + dataOffset);
+			System.out.println("Total Matches found : " + matchingData.size());
+			//System.out.println("dataOffset : " + dataOffset);
 			
 			if (matchingData.size() > dataOffset) {
 				int itemCount = 0;
 				
 				while (matchingData.size() > dataOffset + itemCount) {
-					System.out.println("itemCount : " + itemCount);
+					// System.out.println("itemCount : " + itemCount);
 					response.setOrgData(matchingData.get(dataOffset + itemCount++));
 					
-					if (itemCount == pageSize) {
+					if (itemCount == pageSize) {						
 						break;
 					}
 				}
@@ -82,6 +103,27 @@ public class orgNameSearchService{
 		else {
 			return (pageNumber - 1) * pageSize;
 		}
+	}
+	
+	
+	private void printJWTAttributes()
+	{
+		MessageContext context = wsCtxt.getMessageContext();
+
+		Map map = (Map)context.get(MessageContext.HTTP_REQUEST_HEADERS);
+		
+		List<String> jwtList = (List<String>) map.get(JWT_HEADER_NAME);
+		
+		if (jwtList != null) {
+			String jwt = jwtList.get(0);
+								
+			System.out.println(System.getProperty("line.separator"));
+			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> JWT >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+			System.out.println(jwt);
+			System.out.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> JWT >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+			System.out.println(System.getProperty("line.separator"));
+		}		
+		 
 	}
 
 }
